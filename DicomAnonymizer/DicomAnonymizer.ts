@@ -1,3 +1,10 @@
+import { DataSet, parseDicom } from 'dicom-parser';
+
 export default class DicomAnonymizer {
-  constructor(private u8Array: Uint8Array) {}
+  constructor(private originBuffer: Uint8Array) {}
+
+  anonymize = (): Uint8Array => {
+    const dicom: DataSet = parseDicom(this.originBuffer);
+    return dicom.byteArray;
+  };
 }
