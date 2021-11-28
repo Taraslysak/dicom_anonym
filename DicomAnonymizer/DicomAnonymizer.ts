@@ -26,6 +26,17 @@ export default class DicomAnonymizer {
 
   anonymize = (): Uint8Array => {
     let vrs = new Set<string>();
+    for (const item in listAnonymizedTags) {
+      if (item in dataDictionary) {
+        const element = dataDictionary[item];
+        if (!(element.vr in handler)) {
+          if (element.vr === 'OB') {
+            console.log('OB');
+          }
+          vrs.add(element.vr);
+        }
+      }
+    }
     const dicom: DataSet = parseDicom(this.originBuffer);
     for (const element in dicom.elements) {
       const { tag, vr, length, dataOffset } = dicom.elements[element];
@@ -43,13 +54,9 @@ export default class DicomAnonymizer {
         continue;
       }
 
-      vrs.add(vr);
+      // vrs.add(vr);
 
       console.log(`Name: [${name}]`);
-
-      if (['SH', 'ST'].includes(vr)) {
-        console.log(length);
-      }
 
       if (vr in handler && length) {
         handler[vr](dicom, dataOffset, length);
@@ -180,6 +187,39 @@ const handler: {
   ST: (dicom: DataSet, offset: number, length: number = 0) => {
     // TODO: need verify!
     // const value = loadString8(dicom.byteArray, offset, length);
+    for (let position = 0; position < length; position++) {
+      dicom.byteArray[offset + position] = getRandomChar8();
+    }
+  },
+  UL: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  DT: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  SQ: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  LT: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  AS: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  DS: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  US: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  UT: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  AE: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need implement
+  },
+  OB: (dicom: DataSet, offset: number, length: number = 0) => {
+    // TODO: need verify!
     for (let position = 0; position < length; position++) {
       dicom.byteArray[offset + position] = getRandomChar8();
     }
