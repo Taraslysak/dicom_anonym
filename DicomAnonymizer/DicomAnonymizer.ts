@@ -2,6 +2,8 @@ import { DataSet, parseDicom } from 'dicom-parser';
 import { dataDictionary } from './dataDictionary';
 import { listAnonymizedTags } from './listAnonymizedTags';
 
+const charSet8: Uint8Array = new Uint8Array( "abcde".map(...) );
+
 export default class DicomAnonymizer {
   constructor(private originBuffer: Uint8Array) {}
 
