@@ -13,7 +13,9 @@ describe("Dicom Anonymizer", () => {
     expect(anonymizedDicom.string("x00100010")).not.toBe(
       initialDicom.string("x00100010")
     );
-    //
+    expect(anonymizedDicom.string("x00100020")).not.toBe(
+      initialDicom.string("x00100020")
+    );
   });
 });
 
