@@ -3,9 +3,9 @@ import JSZip, { file } from 'jszip';
 import dicomParser from 'dicom-parser';
 import DicomAnonymizer from '../DicomAnonymizer/DicomAnonymizer';
 import { listAnonymizedTags } from '../DicomAnonymizer/listAnonymizedTags';
+import { anonymizeZip, ProgressStatus } from '../DicomAnonymizer/zipAnonymizer';
 
-// const TEST_FILE_NAME: string = 'dicom_sample.zip';
-const TEST_FILE_NAME: string = 'IMediaExport.zip';
+const TEST_FILE_NAME: string = 'dicom_sample.zip';
 
 describe('Dicom Anonymizer', () => {
   test('should be able to anonymize Dicom file', async () => {
@@ -60,6 +60,44 @@ describe('Dicom Anonymizer', () => {
       type: 'uint8array',
     });
     fs.writeFileSync('outfile.zip', zipBuffer);
+  });
+
+  test('anonymize dicom zip', async () => {
+    const TEST_FILE_NAME: string = 'IMediaExport.zip';
+    const filePath = `${__dirname}/${TEST_FILE_NAME}`;
+    const sampleZIPData: Buffer = fs.readFileSync(filePath);
+    const newZipData = await anonymizeZip(
+      sampleZIPData,
+      (progress: number, status: ProgressStatus, error: string) => {
+        switch (status) {
+          case ProgressStatus.IN_PROGRESS:
+            console.log(`Progress: [${progress}]`);
+            break;
+
+          case ProgressStatus.FINISH:
+            console.log('FINISH');
+            break;
+
+          case ProgressStatus.SUCCESS:
+            console.log('Success');
+            break;
+
+          case ProgressStatus.ERROR:
+            console.error(error);
+            break;
+
+          default:
+            break;
+        }
+      }
+    );
+    // const file: File = new File([newZipData], 'outfile.zip');
+    // fs.writeFile(file);
+    // Buffer.from(newZipData.)
+    // fs.writeFile('outfile.zip', newZipData., (err) => {
+    //   console.error(err);
+    // });
+    await fs.createWriteStream('outfile.zip').write(newZipData);
   });
 });
 
