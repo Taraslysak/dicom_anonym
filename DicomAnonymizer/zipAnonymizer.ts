@@ -1,5 +1,5 @@
-import JSZip from 'jszip';
-import DicomAnonymizer from './DicomAnonymizer';
+import JSZip from "jszip";
+import DicomAnonymizer, { ITableData } from "./DicomAnonymizer";
 
 export enum ProgressStatus {
   IN_PROGRESS,
@@ -16,7 +16,8 @@ export type OnProgress = (
 
 export const anonymizeZip = async (
   zipData: Buffer,
-  callback: OnProgress
+  callback: OnProgress,
+  onDataAnonymized: (anonymizedData: ITableData) => void
 ): Promise<Buffer | Uint8Array | Blob> => {
   const zip = new JSZip();
   //   const newZip = new JSZip();
@@ -40,14 +41,15 @@ export const anonymizeZip = async (
     for (const key in files) {
       const value = files[key];
       if (!value.dir) {
-        const data: Uint8Array = await value.async('uint8array');
+        const data: Uint8Array = await value.async("uint8array");
         const anonymizer = new DicomAnonymizer(data);
         try {
           const newData = anonymizer.anonymize();
           zip.file(key, newData);
+          progressFiles === 0 && onDataAnonymized(anonymizer.anonymizedData);
         } catch (error: any) {
           const message = error.toString();
-          if (!message.includes('dicomParser.read')) {
+          if (!message.includes("dicomParser.read")) {
             throw error;
           }
         }
@@ -61,8 +63,8 @@ export const anonymizeZip = async (
     callback(100, ProgressStatus.FINISH);
     // const onUpdate = (metadata: any) => {};
     const zipBuffer: Uint8Array = await zip.generateAsync({
-      type: 'uint8array',
-      compression: 'DEFLATE',
+      type: "uint8array",
+      compression: "DEFLATE",
       compressionOptions: {
         level: 3,
       },

@@ -1,27 +1,32 @@
-import { DataSet, parseDicom } from 'dicom-parser';
-import { dataDictionary } from './dataDictionary';
-import { listAnonymizedTags } from './listAnonymizedTags';
+import { DataSet, parseDicom } from "dicom-parser";
+import { dataDictionary } from "./dataDictionary";
+import { listAnonymizedTags } from "./listAnonymizedTags";
 
 const charSet8: Uint8Array = new Uint8Array(
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '
-    .split('')
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
+    .split("")
     .map((char) => char.charCodeAt(0))
 );
 
 const charUpperSet8: Uint8Array = new Uint8Array(
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 '
-    .split('')
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+    .split("")
     .map((char) => char.charCodeAt(0))
 );
 
 const charNumberSet8: Uint8Array = new Uint8Array(
-  '0123456789'.split('').map((char) => char.charCodeAt(0))
+  "0123456789".split("").map((char) => char.charCodeAt(0))
 );
 
 export default class DicomAnonymizer {
   private originBuffer: Uint8Array;
   constructor(originBuffer: Uint8Array) {
     this.originBuffer = Uint8Array.from(originBuffer);
+  }
+  private _anonymizedData?: ITableData;
+
+  get anonymizedData(): ITableData | undefined {
+    return this._anonymizedData;
   }
 
   anonymize = (): Uint8Array => {
@@ -30,8 +35,8 @@ export default class DicomAnonymizer {
       if (item in dataDictionary) {
         const element = dataDictionary[item];
         if (!(element.vr in handler)) {
-          if (element.vr === 'OB') {
-            console.log('OB');
+          if (element.vr === "OB") {
+            console.log("OB");
           }
           vrs.add(element.vr);
         }
@@ -41,8 +46,8 @@ export default class DicomAnonymizer {
     for (const element in dicom.elements) {
       const { tag, vr, length, dataOffset } = dicom.elements[element];
       const description = dataDictionary[tag];
-      let name = '???';
-      let vm = '???';
+      let name = "???";
+      let vm = "???";
       if (description) {
         name = description.name;
         vm = description.vm;
@@ -54,8 +59,6 @@ export default class DicomAnonymizer {
         continue;
       }
 
-      // vrs.add(vr);
-
       console.log(`Name: [${name}]`);
 
       if (vr in handler && length) {
@@ -65,6 +68,7 @@ export default class DicomAnonymizer {
         console.warn(`Unknown vr:[${vr}]`);
       }
     }
+    this._anonymizedData = presentData(dicom);
     return dicom.byteArray;
   };
 }
@@ -75,10 +79,10 @@ const loadString8 = (
   length: number
 ): string => {
   if (length <= 0) {
-    return '';
+    return "";
   }
   const bytes = byteArr.slice(offset, offset + length);
-  let retVal: string = '';
+  let retVal: string = "";
   for (const c of bytes) {
     retVal += String.fromCharCode(c);
   }
@@ -141,7 +145,7 @@ const handler: {
     const value = loadString8(bytes, offset, length);
     for (let position = 0; position < length; position++) {
       const char: number = bytes[position + offset];
-      if (char === 0 || String.fromCharCode(char) === '.') continue;
+      if (char === 0 || String.fromCharCode(char) === ".") continue;
       bytes[offset + position] = getRandomNumberChar8();
     }
     console.log(value);
@@ -152,7 +156,7 @@ const handler: {
     const dateStr = `${d.getFullYear()}${d
       .getMonth()
       .toString()
-      .padStart(2, '0')}${d.getDate().toString().padStart(2, '0')}`;
+      .padStart(2, "0")}${d.getDate().toString().padStart(2, "0")}`;
     const bytes = dicom.byteArray;
     const size = Math.min(length, dateStr.length);
     for (let i = 0; i < size; i++) {
@@ -163,13 +167,13 @@ const handler: {
   TM: (dicom: DataSet, offset: number, length: number = 0) => {
     const value = loadString8(dicom.byteArray, offset, length);
     const d = randomDate();
-    const timeStr = `${d.getHours().toString().padStart(2, '0')}${d
+    const timeStr = `${d.getHours().toString().padStart(2, "0")}${d
       .getMinutes()
       .toString()
-      .padStart(2, '0')}${d.getSeconds().toString().padStart(2, '0')}.${d
+      .padStart(2, "0")}${d.getSeconds().toString().padStart(2, "0")}.${d
       .getMilliseconds()
       .toString()
-      .padStart(6, '0')}`;
+      .padStart(6, "0")}`;
     const bytes = dicom.byteArray;
     const size = Math.min(length, timeStr.length);
     for (let i = 0; i < size; i++) {
@@ -225,3 +229,64 @@ const handler: {
     }
   },
 };
+
+const presentData = (anonymizedDicom: DataSet): ITableData => {
+  const sex = anonymizedDicom.string("x00100040");
+  const age = anonymizedDicom.string("x00101010");
+  const height = anonymizedDicom.string("x00101020");
+  const ethnicGroup = anonymizedDicom.string("x00102160");
+  const origin = "some";
+  const imageComments = anonymizedDicom.string("x00204000");
+  const weight = anonymizedDicom.string("x00101030");
+  const patientHistory = anonymizedDicom.string("x001021B0");
+  // const fileName = bufferedFile.name;
+
+  const dataStructure = Object.keys(anonymizedDicom.elements).map((key) => {
+    const tag = dataDictionary[key]?.tag;
+    let textCodeDescription = "";
+
+    if (dataDictionary[key]?.tag) {
+      if (tag !== undefined) {
+        const decodeString = anonymizedDicom.string(tag);
+
+        if (decodeString !== undefined) {
+          textCodeDescription = decodeString;
+        }
+      }
+    }
+
+    return {
+      [dataDictionary[key]?.name]: textCodeDescription,
+    };
+  });
+
+  const parsedData: ITableData = {
+    // folder,
+    sex,
+    age,
+    height,
+    ethnicGroup,
+    origin,
+    imageComments,
+    patientHistory,
+    dataStructure,
+    // fileName,
+    weight,
+  };
+  return parsedData;
+};
+export interface ITableData {
+  // folder: string
+  sex: string;
+  age: string;
+  height: string;
+  ethnicGroup: string;
+  origin: string;
+  imageComments: string;
+  patientHistory: string;
+  dataStructure: {
+    [x: string]: string;
+  }[];
+  // fileName: string
+  weight: string;
+}
