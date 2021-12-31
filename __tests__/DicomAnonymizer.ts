@@ -3,6 +3,10 @@ import JSZip, { file } from 'jszip';
 import dicomParser from 'dicom-parser';
 import DicomAnonymizer from '../DicomAnonymizer/DicomAnonymizer';
 import { listAnonymizedTags } from '../DicomAnonymizer/listAnonymizedTags';
+
+// const TEST_FILE_NAME: string = 'dicom_sample.zip';
+const TEST_FILE_NAME: string = 'IMediaExport.zip';
+
 describe('Dicom Anonymizer', () => {
   test('should be able to anonymize Dicom file', async () => {
     const buffer = await prepareUint8Array();
@@ -36,14 +40,34 @@ describe('Dicom Anonymizer', () => {
       }
     }
   });
+
+  test('change zip file in place', async () => {
+    const TEST_FILE_NAME = 'inline.zip';
+    const filePath = `${__dirname}/${TEST_FILE_NAME}`;
+    const sampleZIPData: Buffer = fs.readFileSync(filePath);
+    const zip = new JSZip();
+    const zipBuf: JSZip = await zip.loadAsync(sampleZIPData, {
+      optimizedBinaryString: true,
+    });
+    for (const [key, value] of Object.entries(zipBuf.files)) {
+      if (!value.dir) {
+        const data: string = await value.async('string');
+        const newData = data.replace('Taras', 'Nikolay');
+        zip.file(key, newData);
+      }
+    }
+    const zipBuffer: Uint8Array = await zip.generateAsync({
+      type: 'uint8array',
+    });
+    fs.writeFileSync('outfile.zip', zipBuffer);
+  });
 });
 
 // ZIP parsing helper function
 const prepareUint8Array = async (): Promise<Uint8Array> => {
   const zip = new JSZip();
-  const sampleZIPData: Buffer = fs.readFileSync(
-    `${__dirname}/dicom_sample.zip`
-  );
+  const filePath = `${__dirname}/${TEST_FILE_NAME}`;
+  const sampleZIPData: Buffer = fs.readFileSync(filePath);
   const zipBuf: JSZip = await zip.loadAsync(sampleZIPData, {
     optimizedBinaryString: true,
   });
